@@ -1,0 +1,7 @@
+{
+  "git": { "name": "Boseok Kang", "email": "speddiikga@gmail.com" },
+  "name": "Boseok Kang",
+  "dev": "%SystemDrive%\\Dev",
+  "language": "Korean",
+  "winget": ["BurntSushi.ripgrep.MSVC", "jqlang.jq"]
+}
