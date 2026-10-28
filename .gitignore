@@ -1,3 +1,7 @@
 __pycache__/
 .pytest_cache/
 *.bak
+# An agent's worktree of this repository and its machine-local settings; gem-save stages
+# everything else here, and would commit a worktree as an embedded repository.
+.claude/worktrees/
+.claude/settings.local.json
