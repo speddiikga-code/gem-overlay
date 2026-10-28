@@ -1,0 +1,5 @@
+# Repositories that restore.cmd clones on a new PC, one per line:
+#   owner/name relative\path\under\DEV
+# for example "someone/blog projects\blog" clones github.com/someone/blog into %DEV%\projects\blog.
+# Lines starting with # are ignored. gem-save rewrites this file from the GitHub repositories it
+# finds under DEV; gem-setting and gem-overlay are cloned by restore itself.
