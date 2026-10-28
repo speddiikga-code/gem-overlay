@@ -1,0 +1,442 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px/1.5 system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style></head><body>
+<title>Gem Setting</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A portable multi-agent dev workstation, drawn as one gem that every agent reads.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@600&text=GEMSTIN%20&display=swap">
+<style>
+/* Layout: a full-bleed canvas stage behind a padded grid: title on top, detail card docked right (bottom on phones), controls along the bottom. */
+:root {
+  --bg: #ECEFF1; --fg: #15202A; --muted: #586570; --line: #C6CED5; --card: #F7F9FAEE;
+  --garnet: #A3223A; --garnet-hi: #E9798B; --teal: #1C6B70;
+  --display: "Unbounded", ui-sans-serif, system-ui, sans-serif;
+  --body: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1418; --fg: #E3E9ED; --muted: #8F9DA8; --line: #24313A; --card: #141D23EE;
+    --garnet: #D9475F; --garnet-hi: #F4A3B0; --teal: #57B5B5; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1418; --fg: #E3E9ED; --muted: #8F9DA8; --line: #24313A; --card: #141D23EE;
+  --garnet: #D9475F; --garnet-hi: #F4A3B0; --teal: #57B5B5; color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); overflow: hidden; }
+.app {
+  position: relative; height: 100%; box-sizing: border-box;
+  display: grid; grid-template-rows: auto 1fr auto; gap: 12px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 16px;
+  pointer-events: none;
+}
+canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; touch-action: none; pointer-events: auto; cursor: grab; }
+canvas:active { cursor: grabbing; }
+canvas:focus-visible { outline: 2px solid var(--garnet); outline-offset: -4px; }
+.head, .mid, .foot { position: relative; min-width: 0; }
+.head h1 { margin: 0; font: 600 clamp(20px, 3.4vw, 30px)/1.1 var(--display); letter-spacing: 0.06em; }
+.head p { margin: 6px 0 0; max-width: 38ch; color: var(--muted); text-wrap: balance; }
+.mid { display: flex; justify-content: flex-end; align-items: center; min-height: 0; }
+.card {
+  pointer-events: auto; box-sizing: border-box; width: min(320px, 100%);
+  background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px;
+  backdrop-filter: blur(6px);
+}
+.tag { margin: 0; font: 11px/1.2 var(--mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--garnet); }
+.card h2 { margin: 6px 0 8px; font-size: 18px; line-height: 1.25; text-wrap: balance; }
+.card p.text { margin: 0 0 12px; }
+.path { display: block; font: 12px/1.45 var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+.foot { display: grid; gap: 10px; }
+.legend { pointer-events: auto; display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; scrollbar-width: thin; }
+.chip, .btn {
+  flex: none; font: 12px/1 var(--body); color: var(--fg); background: var(--card);
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 11px; cursor: pointer;
+}
+.chip[aria-current="true"] { border-color: var(--garnet); color: var(--garnet); }
+.chip:focus-visible, .btn:focus-visible, input:focus-visible { outline: 2px solid var(--garnet); outline-offset: 2px; }
+.controls { pointer-events: auto; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.agents { display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1 1 260px; }
+.agents label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+.agents output { font: 600 13px var(--mono); color: var(--fg); font-variant-numeric: tabular-nums; display: inline-block; min-width: 4ch; text-align: right; }
+.agents input { flex: 1; min-width: 0; accent-color: var(--garnet); }
+.btn[aria-pressed="true"], .btn[aria-expanded="true"] { border-color: var(--teal); color: var(--teal); }
+.sheet { pointer-events: auto; }
+.sheet h2 { margin: 0 0 4px; font-size: 15px; }
+.sheet p { margin: 0 0 10px; color: var(--muted); }
+.sheet pre { margin: 0 0 10px; overflow-x: auto; font: 12px/1.6 var(--mono); background: transparent; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); padding: 8px 0; }
+.sheet .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.status { font-size: 12px; color: var(--muted); }
+.credit { font-size: 11px; color: var(--muted); }
+@media (max-width: 700px) {
+  .mid { align-items: flex-end; }
+  .card { width: 100%; padding: 12px 14px; }
+  .card h2 { font-size: 16px; margin-bottom: 4px; }
+  .card p.text { margin-bottom: 6px; font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { * { scroll-behavior: auto; } }
+</style>
+
+<div class="app">
+  <canvas id="stage" tabindex="0" aria-label="3D view of the workstation. Drag to rotate, scroll or pinch to zoom, arrow keys rotate, plus and minus zoom."></canvas>
+
+  <header class="head">
+    <h1>GEM SETTING</h1>
+    <p>One workstation definition for every machine and every agent. 보석 세팅.</p>
+  </header>
+
+  <div class="mid">
+    <aside class="card" id="detail" aria-live="polite">
+      <p class="tag" id="d-tag">core</p>
+      <h2 id="d-name">One environment</h2>
+      <p class="text" id="d-text"></p>
+      <code class="path" id="d-path"></code>
+    </aside>
+  </div>
+
+  <div class="foot">
+    <section class="card sheet" id="restore" hidden aria-labelledby="restore-title">
+      <h2 id="restore-title">Move to a new PC</h2>
+      <p>On a fresh Windows PC, in a terminal. Open a new terminal after the two installs.</p>
+      <pre id="restore-cmds">winget install --id Git.Git -e --source winget
+winget install --id GitHub.cli -e --source winget
+gh auth login
+gh repo clone gem-overlay "$env:SystemDrive\Dev\gem-overlay"
+&amp; "$env:SystemDrive\Dev\gem-overlay\restore.cmd"</pre>
+      <div class="row">
+        <button class="btn" id="copy" type="button">Copy commands</button>
+        <span class="status" id="copy-status" role="status"></span>
+      </div>
+    </section>
+    <nav class="legend" id="legend" aria-label="Parts of the workstation"></nav>
+    <div class="controls">
+      <div class="agents">
+        <label for="agents">Agents reading it</label>
+        <input type="range" id="agents" min="1" max="1000" step="1" value="120">
+        <output id="agents-out" for="agents">120</output>
+      </div>
+      <button class="btn" id="spin" type="button" aria-pressed="true">Auto-rotate</button>
+      <button class="btn" id="reset" type="button">Reset view</button>
+      <button class="btn" id="move" type="button" aria-expanded="false" aria-controls="restore">Move to a new PC</button>
+      <span class="credit">Built on dev-starter by NaNIsaac</span>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const CORE = {
+    id: 'core', tag: 'core', name: 'One environment',
+    text: 'Rules, skills, git hooks and tools are defined once, in two private GitHub repositories. Every agent on every machine reads the same definition.',
+    path: 'gem-setting + gem-overlay'
+  };
+  const NODES = [
+    { id: 'kit', tag: 'starter kit', name: 'gem-setting', short: 'Kit',
+      text: 'START.cmd installs PowerShell 7, Git, GitHub CLI, VS Code, uv, Node and Python 3.13, then writes the shell profile, agent rules, git hooks and terminal settings. Running it again is safe.',
+      path: 'START.cmd -> bootstrap.ps1 -> setup.ps1' },
+    { id: 'overlay', tag: 'personal layer', name: 'gem-overlay', short: 'Overlay',
+      text: 'Identity, extra apps, rule fragments, skills and setup hooks, kept apart from the kit so the kit stays identical on every PC.',
+      path: 'config.json  rules/  setup.d/  skills/' },
+    { id: 'github', tag: 'backup', name: 'Private GitHub repositories', short: 'GitHub',
+      text: 'The source of truth. gem-save pushes everything worth keeping, so nothing important lives only on one laptop.',
+      path: 'gem-save' },
+    { id: 'restore', tag: 'migration', name: 'A new PC', short: 'New PC',
+      text: 'Two installs, one sign-in, one clone and restore.cmd rebuild the same workstation on any Windows PC.',
+      path: 'restore.cmd' },
+    { id: 'cloud', tag: 'cloud', name: 'GitHub Codespaces', short: 'Codespaces',
+      text: 'The overlay repository opens as a cloud workstation with uv, Python, Node and Claude Code, and the same rules and skills. A browser is enough.',
+      path: '.devcontainer/post-create.sh' },
+    { id: 'agents', tag: 'agents', name: 'Claude Code, Codex, Gemini, OpenCode', short: 'Agents',
+      text: 'One generated rule set goes into each agent’s global instructions. Parallel agents each take their own git worktree and branch.',
+      path: '~/.claude/CLAUDE.md  ~/.codex/AGENTS.md  ~/.gemini/GEMINI.md' },
+    { id: 'skills', tag: 'skill', name: 'kakao-slice', short: 'Skills',
+      text: 'Repeated work becomes a tool. Slice a KakaoTalk export by date, sender or keyword instead of pasting the whole chat into an AI.',
+      path: 'skills/kakao-slice' },
+    { id: 'hooks', tag: 'guardrails', name: 'Git hooks', short: 'Hooks',
+      text: 'commit-msg removes AI credit lines and keeps human co-authors. Every hook hands over to the repository’s own hook, worktrees included.',
+      path: '~/.config/git/hooks' }
+  ];
+
+  const $ = id => document.getElementById(id);
+  const cv = $('stage'), ctx = cv.getContext('2d');
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)');
+
+  let W = 0, H = 0, DPR = 1;
+  let yaw = 0.7, pitch = -0.32, zoom = 1, vYaw = 0, vPitch = 0;
+  let auto = !reduce.matches, selected = CORE, hovered = null;
+  let colors = {};
+
+  const hex = h => { h = h.replace('#', ''); return [0, 2, 4].map(i => parseInt(h.slice(i, i + 2), 16)); };
+  function readTokens() {
+    const cs = getComputedStyle(document.documentElement);
+    const get = n => cs.getPropertyValue(n).trim();
+    colors = { bg: get('--bg'), fg: get('--fg'), muted: get('--muted'), line: get('--line'),
+      garnet: hex(get('--garnet')), hi: hex(get('--garnet-hi')), teal: get('--teal'), body: get('--body') };
+  }
+  readTokens();
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', readTokens);
+  new MutationObserver(readTokens).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+
+  // A simplified round brilliant: table, crown, girdle, two pavilion rings, culet.
+  const SIDES = 12, verts = [], faces = [];
+  const ring = (r, y, off) => Array.from({ length: SIDES }, (_, i) => {
+    const a = (i + off) / SIDES * Math.PI * 2;
+    verts.push([r * Math.cos(a), y, r * Math.sin(a)]); return verts.length - 1;
+  });
+  const table = ring(0.54, 0.6, 0.5), girdle = ring(1, 0.16, 0), lower = ring(0.52, -0.5, 0.5);
+  verts.push([0, -1.22, 0]); const culet = verts.length - 1;
+  faces.push(table.slice());
+  for (let i = 0; i < SIDES; i++) {
+    const j = (i + 1) % SIDES;
+    faces.push([girdle[i], girdle[j], table[i]], [table[i], girdle[j], table[j]]);
+    faces.push([girdle[i], girdle[j], lower[i]], [lower[i], girdle[j], lower[j]], [lower[i], lower[j], culet]);
+  }
+  const sub = (a, b) => [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+  const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+  const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+  const norm = a => { const l = Math.hypot(...a) || 1; return [a[0] / l, a[1] / l, a[2] / l]; };
+  const faceNormals = faces.map(f => {
+    const c = f.reduce((s, k) => [s[0] + verts[k][0] / f.length, s[1] + verts[k][1] / f.length, s[2] + verts[k][2] / f.length], [0, 0, 0]);
+    let n = norm(cross(sub(verts[f[1]], verts[f[0]]), sub(verts[f[2]], verts[f[0]])));
+    if (dot(n, c) < 0) { n = n.map(v => -v); f.reverse(); }
+    return n;
+  });
+
+  const ORBIT = 2.15;
+  NODES.forEach((n, k) => {
+    const a = k / NODES.length * Math.PI * 2;
+    n.p = [ORBIT * Math.cos(a), 0.42 * Math.sin(a * 2), ORBIT * Math.sin(a)];
+  });
+
+  let agents = new Float32Array(0), phases = new Float32Array(0);
+  function setAgents(count) {
+    agents = new Float32Array(count * 3); phases = new Float32Array(count);
+    const golden = Math.PI * (3 - Math.sqrt(5)), R = 3.05;
+    for (let i = 0; i < count; i++) {
+      const y = count === 1 ? 0.55 : 1 - (i / (count - 1)) * 2, r = Math.sqrt(1 - y * y), t = golden * i;
+      agents.set([R * Math.cos(t) * r, R * y * 0.82, R * Math.sin(t) * r], i * 3);
+      phases[i] = (i * 0.618034) % 1;
+    }
+    $('agents-out').value = count;
+  }
+
+  let cy, sy, cp, sp, f, cx0, cy0;
+  function setView() {
+    cy = Math.cos(yaw); sy = Math.sin(yaw); cp = Math.cos(pitch); sp = Math.sin(pitch);
+    const narrow = W < 700;
+    f = Math.min(W, H * (narrow ? 0.78 : 1)) * 0.92 * zoom;
+    cx0 = narrow ? W / 2 : W * 0.44;
+    cy0 = narrow ? H * 0.4 : H * 0.5;
+  }
+  const D = 6.2;
+  function rot(x, y, z) {
+    const x1 = x * cy + z * sy, z1 = -x * sy + z * cy;
+    return [x1, y * cp - z1 * sp, y * sp + z1 * cp];
+  }
+  function project(r) { const s = f / (r[2] + D); return [cx0 + r[0] * s, cy0 - r[1] * s, s]; }
+
+  function resize() {
+    DPR = Math.min(2, window.devicePixelRatio || 1);
+    const r = cv.getBoundingClientRect(); W = r.width; H = r.height;
+    cv.width = Math.round(W * DPR); cv.height = Math.round(H * DPR);
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0);
+  }
+  new ResizeObserver(resize).observe(cv);
+  resize();
+
+  const LIGHT = norm([-0.45, 0.75, -0.6]), HALF = norm([LIGHT[0], LIGHT[1], LIGHT[2] - 1]);
+  let gemRadius = 0, projNodes = [], centre = [0, 0];
+
+  function drawNode(n, front) {
+    const [x, y, s] = n.screen, isSel = selected === n, isHov = hovered === n;
+    ctx.globalAlpha = front ? 1 : 0.55;
+    ctx.strokeStyle = colors.line; ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(centre[0], centre[1]); ctx.lineTo(x, y); ctx.stroke();
+    const r = Math.max(3.5, s * 0.075) * (isSel || isHov ? 1.35 : 1);
+    ctx.fillStyle = isSel ? `rgb(${colors.garnet})` : colors.teal;
+    ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+    if (isSel || isHov) { ctx.strokeStyle = `rgb(${colors.garnet})`; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.arc(x, y, r + 4, 0, Math.PI * 2); ctx.stroke(); }
+    ctx.fillStyle = colors.fg;
+    ctx.font = `${isSel || isHov ? 600 : 500} 12px ${colors.body}`;
+    ctx.textAlign = x < centre[0] ? 'right' : 'left'; ctx.textBaseline = 'middle';
+    ctx.fillText(n.short, x + (x < centre[0] ? -r - 7 : r + 7), y);
+    ctx.globalAlpha = 1;
+  }
+
+  function draw(time) {
+    setView();
+    ctx.fillStyle = colors.bg; ctx.fillRect(0, 0, W, H);
+    centre = project(rot(0, -0.1, 0));
+
+    ctx.strokeStyle = colors.line; ctx.lineWidth = 1; ctx.beginPath();
+    for (let i = 0; i <= 96; i++) {
+      const a = i / 96 * Math.PI * 2, p = project(rot(ORBIT * Math.cos(a), 0.42 * Math.sin(a * 2), ORBIT * Math.sin(a)));
+      i ? ctx.lineTo(p[0], p[1]) : ctx.moveTo(p[0], p[1]);
+    }
+    ctx.stroke();
+
+    const count = phases.length, pts = new Float32Array(count * 3);
+    for (let i = 0; i < count; i++) {
+      const r = rot(agents[i * 3], agents[i * 3 + 1], agents[i * 3 + 2]), p = project(r);
+      pts[i * 3] = p[0]; pts[i * 3 + 1] = p[1]; pts[i * 3 + 2] = r[2];
+    }
+    ctx.strokeStyle = colors.teal; ctx.lineWidth = 0.6;
+    ctx.globalAlpha = count > 400 ? 0.05 : count > 100 ? 0.09 : 0.16;
+    ctx.beginPath();
+    for (let i = 0; i < count; i++) { ctx.moveTo(pts[i * 3], pts[i * 3 + 1]); ctx.lineTo(centre[0], centre[1]); }
+    ctx.stroke();
+    ctx.fillStyle = colors.teal;
+    for (const front of [false, true]) {
+      ctx.globalAlpha = front ? 0.95 : 0.4;
+      for (let i = 0; i < count; i++) {
+        if ((pts[i * 3 + 2] < 0) !== front) continue;
+        const s = front ? 2.4 : 1.6;
+        ctx.fillRect(pts[i * 3] - s / 2, pts[i * 3 + 1] - s / 2, s, s);
+      }
+    }
+    // Each agent sends a small read toward the core; reduced motion keeps them still.
+    ctx.fillStyle = `rgb(${colors.garnet})`; ctx.globalAlpha = 0.8;
+    const t = reduce.matches ? 0.5 : time * 0.22;
+    for (let i = 0; i < count; i++) {
+      const k = (t + phases[i]) % 1, x = pts[i * 3] + (centre[0] - pts[i * 3]) * k, y = pts[i * 3 + 1] + (centre[1] - pts[i * 3 + 1]) * k;
+      ctx.fillRect(x - 1, y - 1, 2, 2);
+    }
+    ctx.globalAlpha = 1;
+
+    projNodes = NODES.map(n => { const r = rot(...n.p); n.depth = r[2]; n.screen = project(r); return n; });
+    projNodes.filter(n => n.depth >= 0).forEach(n => drawNode(n, false));
+
+    const rv = verts.map(v => rot(v[0], v[1] - 0.1, v[2])), pv = rv.map(project);
+    gemRadius = pv.reduce((m, p) => Math.max(m, Math.hypot(p[0] - centre[0], p[1] - centre[1])), 0);
+    const order = faces.map((fc, i) => {
+      const n = rot(...faceNormals[i]);
+      const c = fc.reduce((s, k) => [s[0] + rv[k][0], s[1] + rv[k][1], s[2] + rv[k][2]], [0, 0, 0]).map(v => v / fc.length);
+      return { i, n, depth: c[2], visible: dot(n, [c[0], c[1], c[2] + D]) < 0 };
+    }).filter(o => o.visible).sort((a, b) => b.depth - a.depth);
+    const sel = selected === CORE;
+    for (const o of order) {
+      const lam = Math.max(0, dot(o.n, LIGHT)), spec = Math.pow(Math.max(0, -dot(o.n, HALF)), 28);
+      const k = 0.28 + 0.72 * lam + (o.i % 3 === 0 ? 0.06 : 0);
+      const c = colors.garnet.map((g, j) => Math.min(255, Math.round(g * (0.55 + 0.6 * k) + (colors.hi[j] - g) * 0.35 * k + 255 * spec * 0.85)));
+      ctx.fillStyle = `rgb(${c})`;
+      ctx.beginPath();
+      faces[o.i].forEach((v, j) => j ? ctx.lineTo(pv[v][0], pv[v][1]) : ctx.moveTo(pv[v][0], pv[v][1]));
+      ctx.closePath(); ctx.fill();
+      ctx.strokeStyle = `rgba(${colors.hi},${sel ? 0.75 : 0.45})`; ctx.lineWidth = 0.7; ctx.stroke();
+    }
+
+    projNodes.filter(n => n.depth < 0).forEach(n => drawNode(n, true));
+  }
+
+  function pick(x, y) {
+    let best = null, bestD = 22;
+    for (const n of projNodes) {
+      const d = Math.hypot(n.screen[0] - x, n.screen[1] - y);
+      if (d < bestD) { best = n; bestD = d; }
+    }
+    if (!best && Math.hypot(centre[0] - x, centre[1] - y) < gemRadius * 0.9) return CORE;
+    return best;
+  }
+
+  const legend = $('legend');
+  [CORE, ...NODES].forEach(n => {
+    const b = document.createElement('button');
+    b.type = 'button'; b.className = 'chip'; b.id = `chip-${n.id}`;
+    b.textContent = n.short || 'Core';
+    b.addEventListener('click', () => select(n));
+    legend.append(b);
+  });
+
+  function select(n) {
+    selected = n;
+    $('d-tag').textContent = n.tag; $('d-name').textContent = n.name;
+    $('d-text').textContent = n.text; $('d-path').textContent = n.path;
+    legend.querySelectorAll('.chip').forEach(b => b.setAttribute('aria-current', String(b.id === `chip-${n.id}`)));
+  }
+  select(CORE);
+
+  const pointers = new Map();
+  let moved = 0, pinch = 0;
+  cv.addEventListener('pointerdown', e => {
+    cv.setPointerCapture(e.pointerId);
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    moved = 0; vYaw = vPitch = 0;
+    if (pointers.size === 2) { const [a, b] = [...pointers.values()]; pinch = Math.hypot(a.x - b.x, a.y - b.y); }
+  });
+  cv.addEventListener('pointermove', e => {
+    const r = cv.getBoundingClientRect();
+    if (!pointers.has(e.pointerId)) { hovered = pick(e.clientX - r.left, e.clientY - r.top); cv.style.cursor = hovered ? 'pointer' : ''; return; }
+    const prev = pointers.get(e.pointerId), dx = e.clientX - prev.x, dy = e.clientY - prev.y;
+    pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointers.size === 1) {
+      vYaw = dx * 0.008; vPitch = dy * 0.008;
+      yaw += vYaw; pitch = Math.max(-1.3, Math.min(1.3, pitch + vPitch));
+      moved += Math.abs(dx) + Math.abs(dy);
+    } else if (pointers.size === 2) {
+      const [a, b] = [...pointers.values()], d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch) zoom = Math.max(0.5, Math.min(2.4, zoom * d / pinch));
+      pinch = d; moved += 10;
+    }
+  });
+  const release = e => {
+    if (pointers.size === 1 && moved < 6) {
+      const r = cv.getBoundingClientRect(), n = pick(e.clientX - r.left, e.clientY - r.top);
+      if (n) select(n);
+    }
+    pointers.delete(e.pointerId); pinch = 0;
+  };
+  cv.addEventListener('pointerup', release);
+  cv.addEventListener('pointercancel', e => { pointers.delete(e.pointerId); pinch = 0; });
+  cv.addEventListener('pointerleave', () => { if (!pointers.size) hovered = null; });
+  cv.addEventListener('wheel', e => { e.preventDefault(); zoom = Math.max(0.5, Math.min(2.4, zoom * Math.exp(-e.deltaY * 0.0012))); }, { passive: false });
+  cv.addEventListener('keydown', e => {
+    const step = 0.12;
+    if (e.key === 'ArrowLeft') yaw -= step; else if (e.key === 'ArrowRight') yaw += step;
+    else if (e.key === 'ArrowUp') pitch = Math.max(-1.3, pitch - step); else if (e.key === 'ArrowDown') pitch = Math.min(1.3, pitch + step);
+    else if (e.key === '+' || e.key === '=') zoom = Math.min(2.4, zoom * 1.1); else if (e.key === '-') zoom = Math.max(0.5, zoom / 1.1);
+    else return;
+    e.preventDefault();
+  });
+
+  const slider = $('agents');
+  slider.addEventListener('input', () => setAgents(+slider.value));
+  setAgents(+slider.value);
+
+  const spin = $('spin');
+  const setSpin = on => { auto = on; spin.setAttribute('aria-pressed', String(on)); };
+  setSpin(auto);
+  spin.addEventListener('click', () => setSpin(!auto));
+  $('reset').addEventListener('click', () => { yaw = 0.7; pitch = -0.32; zoom = 1; vYaw = vPitch = 0; select(CORE); });
+
+  const move = $('move'), sheet = $('restore');
+  move.addEventListener('click', () => {
+    sheet.hidden = !sheet.hidden;
+    move.setAttribute('aria-expanded', String(!sheet.hidden));
+  });
+  $('copy').addEventListener('click', () => {
+    const text = $('restore-cmds').textContent, status = $('copy-status');
+    navigator.clipboard.writeText(text).then(() => { status.textContent = 'Copied'; }, () => {
+      const range = document.createRange(); range.selectNodeContents($('restore-cmds'));
+      const s = getSelection(); s.removeAllRanges(); s.addRange(range);
+      status.textContent = 'Selected. Press Ctrl+C to copy.';
+    });
+  });
+
+  let last = performance.now();
+  function frame(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    if (!pointers.size) {
+      yaw += vYaw; pitch = Math.max(-1.3, Math.min(1.3, pitch + vPitch));
+      vYaw *= 0.93; vPitch *= 0.93;
+      if (auto) yaw += dt * 0.22;
+    }
+    draw(now / 1000);
+    requestAnimationFrame(frame);
+  }
+  requestAnimationFrame(frame);
+})();
+</script>
+</body></html>

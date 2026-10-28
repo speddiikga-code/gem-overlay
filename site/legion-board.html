@@ -180,6 +180,7 @@ footer { font-size: 12px; color: var(--muted); }
     max: { maxAgents: 950, maxDepth: 40, branching: 8 },
   };
   const TOKENS_PER_AGENT = 54000;
+  const BOARD_URL = 'https://claude.ai/artifact/9nmY2x95PSQVmtxpwjdhts';
   const STATUS = { queued: '대기', running: '진행 중', done: '완료' };
   const $ = id => document.getElementById(id);
 
@@ -398,10 +399,13 @@ footer { font-size: 12px; color: var(--muted); }
   });
 
   (async () => {
-    const [d, u] = await Promise.all([claude.use('db'), claude.use('user')]);
+    // On a plain web host there is no window.claude and no shared store; the planner still works there.
+    const api = window.claude;
+    const [d, u] = api?.use ? await Promise.all([api.use('db'), api.use('user')]) : [null, null];
     db = d; user = u;
     if (!db) {
-      $('empty').textContent = '게시판은 Claude에 로그인한 상태에서 보여. 작전 계획과 명령 복사는 로그인 없이도 쓸 수 있어.';
+      const link = Object.assign(document.createElement('a'), { href: BOARD_URL, target: '_blank', rel: 'noopener', textContent: '공유 게시판 열기' });
+      $('empty').replaceChildren(api?.use ? '게시판은 Claude에 로그인한 상태에서 보여. ' : '임무 올리기와 추천은 Claude 버전에서 돼: ', link, '. 작전 계획과 명령 복사는 여기서 그대로 쓸 수 있어.');
       $('post').disabled = true;
       return;
     }
