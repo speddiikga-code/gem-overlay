@@ -118,6 +118,13 @@ On the repository page on GitHub: Code, Codespaces, Create codespace on main. Or
 gh codespace create -R "$(gh api user --jq .login)/gem-overlay"
 ```
 
+Open it from a local terminal (the codespace runs an SSH server for this) or in VS Code:
+
+```powershell
+gh codespace ssh
+gh codespace code
+```
+
 `.devcontainer\post-create.sh` then installs uv, Python 3.13 and Claude Code, copies `cloud\CLAUDE.md`
 to the Claude, Codex, Gemini and OpenCode rule files, the skills to `~/.claude/skills`, the git
 hooks to `~/.config/git/hooks` (as `core.hooksPath`), sets Claude Code's `attribution`, sets the git

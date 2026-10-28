@@ -103,9 +103,11 @@ if [ "$(git config --global --get core.hooksPath || true)" != "$hooks" ]; then
     printf '   core.hooksPath = %s\n' "$hooks"
 fi
 
-step 'git: identity from config.json where unset'
+# Codespaces puts the GitHub login in /etc/gitconfig; checking only the user's own (global) value lets
+# config.json win there, so commits from the cloud carry the same name as those from the PC.
+step 'git: identity from config.json where the user has not set one'
 for key in name email; do
-    if [ -z "$(git config --get "user.$key" || true)" ]; then
+    if [ -z "$(git config --global --get "user.$key" || true)" ]; then
         value="$(config_git "$key")"
         if [ -n "$value" ]; then
             git config --global "user.$key" "$value"
