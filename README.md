@@ -39,6 +39,8 @@ are passed on), `gem-save` and `gem-restore-help`.
 | `cloud\` | what the codespace reads, kept current by `40-cloud-export.ps1`; do not edit it by hand |
 | `.devcontainer\` | the GitHub Codespaces definition (Ubuntu, Node LTS, GitHub CLI) and `post-create.sh`, which installs uv, Python 3.13 and Claude Code and applies `cloud\` and `skills\` |
 | `skills\kakao-slice\` | a Claude Code skill for KakaoTalk chat exports (below) |
+| `skills\legion\` | the agent legion: a workflow that spreads one task over a tree of agents (below) |
+| `site\gem-setting-3d.html` | source of the interactive 3D overview page published as a Claude artifact |
 | `.gitattributes` | LF for shell scripts, hooks, `cloud\` and `.devcontainer\`; CRLF for `.cmd` and `.ps1` |
 | `.gitignore` | keeps Python caches, `.bak` files, and an agent's `.claude\worktrees\` and `.claude\settings.local.json` out of git (gem-save stages everything else here) |
 
@@ -143,3 +145,15 @@ uv run "$HOME\.claude\skills\kakao-slice\kakao_slice.py" "KakaoTalk_chat.txt" --
 `--list` shows messages per date; then pick a slice with `--date`, `--from`/`--to`, `--last N`,
 `--sender`, `--grep`, and save it with `-o`. `--help` lists every option and supported format.
 Tests: `uv run --with pytest pytest skills\kakao-slice\tests -q`.
+
+## legion skill
+
+Spreads one task over a tree of agents. Each agent either does its task or splits it into
+self-contained subtasks for child agents; parents merge their children's results, deepest level
+first, and a critic reviews the final result. The script keeps the tree, so depth costs no context.
+
+In Claude Code, ask for it by name, for example "legion으로 이 작업 나눠서 해 줘: <task>". It
+previews the tree first (`mode: plan`), then runs with the size you pick: `tiny` (12 agents),
+`squad` (40), `legion` (300) or `max` (950 agents, 40 levels). One workflow runs up to 16 agents at
+a time and 1000 in total. Arguments and details: [skills/legion/SKILL.md](skills/legion/SKILL.md).
+Results go to `$env:DEV\legion-runs\`.
