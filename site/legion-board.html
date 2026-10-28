@@ -1,0 +1,426 @@
+<title>군단 임무 게시판</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap">
+<style>
+/* Layout: a dedication band, then a two-column command desk: the planner on the left, the shared mission board on the right; one column on phones. */
+:root {
+  --bg: #E8EBEE; --panel: #F6F7F8; --ink: #131920; --muted: #55606B; --line: #C9D0D7;
+  --garnet: #A3223A; --brass: #85661C; --teal: #1B686D; --ok: #2E7A48; --warn: #8E6200;
+  --display: "Black Han Sans", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --body: system-ui, -apple-system, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+  --mono: ui-monospace, "Cascadia Mono", Consolas, "SFMono-Regular", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0E1317; --panel: #151D23; --ink: #E3E8EC; --muted: #8E9DA8; --line: #26323B;
+    --garnet: #E0566D; --brass: #D3AF5C; --teal: #5BB6B6; --ok: #5DBA7D; --warn: #DDAE49; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0E1317; --panel: #151D23; --ink: #E3E8EC; --muted: #8E9DA8; --line: #26323B;
+  --garnet: #E0566D; --brass: #D3AF5C; --teal: #5BB6B6; --ok: #5DBA7D; --warn: #DDAE49; color-scheme: dark;
+}
+body { background: var(--bg); color: var(--ink); font: 15px/1.6 var(--body); }
+.wrap {
+  max-width: 1180px; margin: 0 auto; box-sizing: border-box;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+  display: grid; gap: 24px;
+}
+a { color: var(--teal); }
+.gift { display: grid; gap: 8px; max-width: 70ch; }
+.eyebrow { margin: 0; font: 600 12px/1.3 var(--mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--brass); }
+h1 { margin: 0; font: 400 clamp(34px, 6vw, 56px)/1.05 var(--display); letter-spacing: 0.01em; text-wrap: balance; }
+.gift p { margin: 0; color: var(--muted); }
+.gift .to { color: var(--ink); }
+.links { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 13px; }
+.desk { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (max-width: 860px) { .desk { grid-template-columns: minmax(0, 1fr); } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.panel h2 { margin: 0; font-size: 18px; display: flex; align-items: baseline; gap: 10px; }
+.panel h2 .count { font: 500 13px var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+label, legend { font-size: 13px; font-weight: 600; }
+textarea, input[type="number"], select {
+  font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 6px; padding: 8px 10px; box-sizing: border-box; width: 100%;
+}
+textarea { resize: vertical; min-height: 84px; }
+.hint { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+fieldset { border: 0; margin: 0; padding: 0; display: grid; gap: 6px; min-width: 0; }
+.seg { display: flex; flex-wrap: wrap; gap: 6px; }
+.seg input { position: absolute; opacity: 0; pointer-events: none; }
+.seg label { font-weight: 500; border: 1px solid var(--line); border-radius: 999px; padding: 6px 12px; cursor: pointer; background: var(--bg); display: inline-flex; gap: 6px; align-items: baseline; }
+.seg label small { font: 11px var(--mono); color: var(--muted); }
+.seg input:checked + label { border-color: var(--garnet); color: var(--garnet); }
+.seg input:checked + label small { color: var(--garnet); }
+.seg input:focus-visible + label { outline: 2px solid var(--garnet); outline-offset: 2px; }
+.row2 { display: grid; grid-template-columns: minmax(0, 1fr) 140px; gap: 12px; align-items: end; }
+@media (max-width: 480px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+.stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 8px; overflow: hidden; margin: 0; }
+@media (max-width: 480px) { .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.stats div { background: var(--panel); padding: 10px 12px; min-width: 0; }
+.stats dt { font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
+.stats dd { margin: 2px 0 0; font: 600 20px/1.2 var(--mono); font-variant-numeric: tabular-nums; }
+.note { margin: 0; font-size: 12px; color: var(--muted); }
+canvas { width: 100%; height: 170px; display: block; background: var(--bg); border-radius: 8px; }
+pre { margin: 0; padding: 12px; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; overflow-x: auto; font: 12.5px/1.55 var(--mono); white-space: pre; }
+.actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: inherit; font-size: 13px; cursor: pointer; border-radius: 6px; padding: 8px 14px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+button.primary { background: var(--garnet); border-color: var(--garnet); color: var(--panel); font-weight: 600; }
+button:disabled { opacity: 0.5; cursor: not-allowed; }
+button:focus-visible, textarea:focus-visible, input:focus-visible, select:focus-visible { outline: 2px solid var(--garnet); outline-offset: 2px; }
+.status { font-size: 12px; color: var(--muted); min-height: 1.4em; }
+.access { margin: 0; font-size: 13px; padding: 10px 12px; border-radius: 8px; border: 1px dashed var(--line); color: var(--muted); }
+.missions { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.mission { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--bg); border-left-width: 4px; }
+.mission[data-status="queued"] { border-left-color: var(--warn); }
+.mission[data-status="running"] { border-left-color: var(--teal); }
+.mission[data-status="done"] { border-left-color: var(--ok); }
+.m-goal { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
+.m-meta { margin: 0; font-size: 12px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: center; }
+.chip { font: 11px/1.6 var(--mono); padding: 0 7px; border: 1px solid var(--line); border-radius: 999px; }
+.chip.st-queued { color: var(--warn); border-color: currentColor; }
+.chip.st-running { color: var(--teal); border-color: currentColor; }
+.chip.st-done { color: var(--ok); border-color: currentColor; }
+.vote { display: grid; justify-items: center; gap: 0; padding: 6px 12px; min-width: 56px; align-self: start; }
+.vote b { font: 600 18px/1.1 var(--mono); font-variant-numeric: tabular-nums; }
+.vote span { font-size: 11px; color: var(--muted); }
+.vote[aria-pressed="true"] { border-color: var(--garnet); color: var(--garnet); }
+.vote[aria-pressed="true"] span { color: var(--garnet); }
+.m-tools { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.m-tools select { width: auto; padding: 4px 8px; font-size: 12px; }
+.m-tools button { padding: 4px 10px; font-size: 12px; }
+.empty { margin: 0; padding: 24px 12px; text-align: center; color: var(--muted); border: 1px dashed var(--line); border-radius: 8px; }
+footer { font-size: 12px; color: var(--muted); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <header class="gift">
+    <p class="eyebrow">선물 · NaNIsaac에게</p>
+    <h1>군단 임무 게시판</h1>
+    <p class="to">이삭 형, 형이 준 보석 세팅 위에 에이전트 군단을 세웠어. 이 게시판은 군단에게 맡길 일을 같이 정하는 곳이야. 형이 원작자니까 첫 임무도 형이 정해 줘.</p>
+    <p>목표를 쓰면 몇 단짜리 피라미드가 될지, 에이전트가 몇이나 들지 미리 보여 주고, Claude Code에 그대로 붙여 넣을 명령을 만들어 준다. 올린 임무는 같이 보고 추천할 수 있어. 보석이 골라서 군단을 돌려.</p>
+    <nav class="links" aria-label="저장소">
+      <a href="https://github.com/speddiikga-code/gem-setting" target="_blank" rel="noopener">gem-setting</a>
+      <a href="https://github.com/speddiikga-code/gem-overlay" target="_blank" rel="noopener">gem-overlay</a>
+      <a href="https://github.com/speddiikga-code/gem-overlay/blob/main/skills/legion/SKILL.md" target="_blank" rel="noopener">legion 스킬 설명</a>
+      <a href="https://github.com/speddiikga-code/legion-runs" target="_blank" rel="noopener">지난 실행 결과</a>
+    </nav>
+  </header>
+
+  <div class="desk">
+    <section class="panel" aria-labelledby="plan-title">
+      <h2 id="plan-title">작전 계획</h2>
+      <form id="plan" novalidate>
+        <div style="display:grid;gap:16px">
+          <div>
+            <label for="goal">군단에게 맡길 목표</label>
+            <textarea id="goal" maxlength="500">예시: 보석 세팅 키트에 빠진 테스트를 만들고, 보안 점검을 하고, 초보자용 문서를 다듬는다.</textarea>
+            <p class="hint">예시 목표가 들어 있어. 지우고 직접 써.</p>
+          </div>
+          <fieldset>
+            <legend>군단 크기</legend>
+            <div class="seg" id="presets"></div>
+          </fieldset>
+          <div class="row2">
+            <fieldset>
+              <legend>방식</legend>
+              <div class="seg">
+                <input type="radio" name="mode" id="m-plan" value="plan" checked><label for="m-plan">plan <small>트리만 미리보기</small></label>
+                <input type="radio" name="mode" id="m-run" value="run"><label for="m-run">run <small>실제 작업, 합치기, 검토</small></label>
+              </div>
+            </fieldset>
+            <div>
+              <label for="minDepth">최소 깊이</label>
+              <input type="number" id="minDepth" min="0" max="8" value="0">
+            </div>
+          </div>
+          <dl class="stats" aria-live="polite">
+            <div><dt>최대 에이전트</dt><dd id="s-agents">0</dd></div>
+            <div><dt>최대 단수</dt><dd id="s-depth">0</dd></div>
+            <div><dt>예상 토큰 (최대)</dt><dd id="s-tokens">0</dd></div>
+            <div><dt>동시 실행</dt><dd>16</dd></div>
+          </dl>
+          <canvas id="pyramid" aria-label="모든 에이전트가 쪼갤 때의 최대 피라미드 모양"></canvas>
+          <p class="note">피라미드와 숫자는 모든 에이전트가 쪼개기를 고를 때의 상한이야. 실제로는 에이전트가 필요할 때만 쪼개서 더 작다. 토큰은 에이전트 하나당 약 5.4만으로 계산했어 (2026-10-28 보석 PC 실측). 워크플로 하나는 16개까지 동시에 돌고 나머지는 줄을 선다.</p>
+          <div>
+            <label for="cmd">Claude Code에 붙여 넣을 명령</label>
+            <pre id="cmd" tabindex="0"></pre>
+          </div>
+          <div class="actions">
+            <button type="button" id="copy">명령 복사</button>
+            <button type="submit" class="primary" id="post">게시판에 올리기</button>
+            <span class="status" id="plan-status" role="status"></span>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <section class="panel" aria-labelledby="board-title">
+      <h2 id="board-title">임무 게시판 <span class="count" id="count"></span></h2>
+      <p class="access" id="access" hidden></p>
+      <ul class="missions" id="missions"></ul>
+      <p class="empty" id="empty">게시판을 불러오는 중이야.</p>
+    </section>
+  </div>
+
+  <footer>보석 세팅(gem-setting)은 NaNIsaac의 dev-starter를 바탕으로 만들었다. 원작자 표기를 남겨 둔다.</footer>
+</div>
+
+<script>
+(() => {
+  const PRESETS = {
+    tiny: { maxAgents: 12, maxDepth: 3, branching: 3 },
+    squad: { maxAgents: 40, maxDepth: 5, branching: 4 },
+    legion: { maxAgents: 300, maxDepth: 12, branching: 6 },
+    max: { maxAgents: 950, maxDepth: 40, branching: 8 },
+  };
+  const TOKENS_PER_AGENT = 54000;
+  const STATUS = { queued: '대기', running: '진행 중', done: '완료' };
+  const $ = id => document.getElementById(id);
+
+  const presetBox = $('presets');
+  for (const [name, p] of Object.entries(PRESETS)) {
+    const input = Object.assign(document.createElement('input'), { type: 'radio', name: 'preset', id: `p-${name}`, value: name, checked: name === 'squad' });
+    const label = document.createElement('label');
+    label.htmlFor = input.id;
+    label.append(name, ' ');
+    const small = document.createElement('small');
+    small.textContent = `${p.maxAgents}명 · ${p.maxDepth}단`;
+    label.append(small);
+    presetBox.append(input, label);
+  }
+
+  const form = $('plan');
+  const read = () => {
+    const preset = form.querySelector('input[name="preset"]:checked').value;
+    const mode = form.querySelector('input[name="mode"]:checked').value;
+    const minDepth = Math.max(0, Math.min(8, Math.round(Number($('minDepth').value) || 0)));
+    return { goal: $('goal').value.trim(), preset, mode, minDepth };
+  };
+
+  // Same reservation rule as legion.js: a split holds its children's slots plus one merge in run mode.
+  function shape({ preset, mode }) {
+    const p = PRESETS[preset], merge = mode === 'run' ? 1 : 0;
+    let used = 1 + (mode === 'run' ? 1 : 0), frontier = 1;
+    const levels = [1];
+    for (let d = 0; d < p.maxDepth; d++) {
+      let next = 0;
+      for (let i = 0; i < frontier; i++) {
+        const k = Math.min(p.branching, p.maxAgents - used - merge);
+        if (k < 2) break;
+        used += k + merge; next += k;
+      }
+      if (!next) break;
+      levels.push(next); frontier = next;
+    }
+    return { levels, agents: used };
+  }
+
+  const fmt = n => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : `${Math.round(n / 1e3)}k`;
+
+  const cv = $('pyramid'), ctx = cv.getContext('2d');
+  function token(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+  function drawPyramid(levels) {
+    const dpr = Math.min(2, window.devicePixelRatio || 1), w = cv.clientWidth, h = cv.clientHeight;
+    cv.width = Math.round(w * dpr); cv.height = Math.round(h * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const rows = levels.length, pad = 18, rowH = (h - pad * 2) / Math.max(1, rows - 1 || 1);
+    const ink = token('--muted'), garnet = token('--garnet'), teal = token('--teal'), line = token('--line');
+    let prev = null;
+    levels.forEach((n, i) => {
+      const y = rows === 1 ? h / 2 : pad + i * rowH;
+      const span = (w - 80) * ((i + 1) / rows);
+      const shown = Math.min(n, 40), x0 = w / 2 - span / 2;
+      const xs = Array.from({ length: shown }, (_, j) => shown === 1 ? w / 2 : x0 + (span * j) / (shown - 1));
+      if (prev) {
+        ctx.strokeStyle = line; ctx.lineWidth = 1; ctx.beginPath();
+        xs.forEach((x, j) => { const px = prev.xs[Math.floor(j * prev.xs.length / xs.length)]; ctx.moveTo(px, prev.y); ctx.lineTo(x, y); });
+        ctx.stroke();
+      }
+      ctx.fillStyle = i === 0 ? garnet : i === rows - 1 ? teal : ink;
+      const r = Math.max(1.6, Math.min(5, 160 / shown));
+      xs.forEach(x => { ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill(); });
+      ctx.fillStyle = ink; ctx.font = `11px ${token('--mono')}`; ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left'; ctx.fillText(`L${i}`, 4, y);
+      ctx.textAlign = 'right'; ctx.fillText(n > shown ? `${n}` : `${n}`, w - 4, y);
+      prev = { xs, y };
+    });
+  }
+
+  function command(s) {
+    const extra = s.minDepth ? `, minDepth: ${s.minDepth}` : '';
+    const args = { goal: s.goal || '(목표)', mode: s.mode, preset: s.preset, ...(s.minDepth ? { minDepth: s.minDepth } : {}) };
+    return `legion으로 이 작업 나눠서 해 줘: ${s.goal || '(목표)'}\n(mode: ${s.mode}, preset: ${s.preset}${extra})\n\n# Workflow args\n${JSON.stringify(args, null, 2)}`;
+  }
+
+  function updatePlan() {
+    const s = read(), sh = shape(s);
+    $('s-agents').textContent = sh.agents;
+    $('s-depth').textContent = sh.levels.length;
+    $('s-tokens').textContent = fmt(sh.agents * TOKENS_PER_AGENT);
+    $('cmd').textContent = command(s);
+    drawPyramid(sh.levels);
+  }
+  form.addEventListener('input', updatePlan);
+  new ResizeObserver(updatePlan).observe(cv);
+  matchMedia('(prefers-color-scheme: dark)').addEventListener('change', updatePlan);
+  new MutationObserver(updatePlan).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  updatePlan();
+
+  $('copy').addEventListener('click', () => {
+    const text = $('cmd').textContent, status = $('plan-status');
+    navigator.clipboard.writeText(text).then(() => { status.textContent = '명령을 복사했어.'; }, () => {
+      const range = document.createRange(); range.selectNodeContents($('cmd'));
+      const sel = getSelection(); sel.removeAllRanges(); sel.addRange(range);
+      status.textContent = '선택해 뒀어. Ctrl+C로 복사해.';
+    });
+  });
+
+  let db = null, user = null, uid = null, writable = false;
+  let missions = [], votes = new Map(), mine = new Set(), editor = false, renderSeq = 0, votingChain = Promise.resolve();
+
+  function setAccess(text) { const el = $('access'); el.textContent = text; el.hidden = !text; }
+  function readOnly(reason) {
+    writable = false;
+    $('post').disabled = true;
+    setAccess(reason);
+    render();
+  }
+
+  function ago(ms) {
+    const s = Math.max(0, (Date.now() - ms) / 1000);
+    if (s < 60) return '방금';
+    if (s < 3600) return `${Math.floor(s / 60)}분 전`;
+    if (s < 86400) return `${Math.floor(s / 3600)}시간 전`;
+    return `${Math.floor(s / 86400)}일 전`;
+  }
+
+  async function render() {
+    const seq = ++renderSeq;
+    const list = $('missions'), empty = $('empty');
+    const counts = new Map();
+    for (const ids of votes.values()) for (const id of ids) counts.set(id, (counts.get(id) ?? 0) + 1);
+    const sorted = [...missions].sort((a, b) => (counts.get(b.id) ?? 0) - (counts.get(a.id) ?? 0) || b.createdAt - a.createdAt);
+    const ids = [...new Set(sorted.map(m => m.author).filter(Boolean))];
+    const people = user && ids.length ? await user.profiles(ids) : {};
+    if (seq !== renderSeq) return;
+
+    $('count').textContent = missions.length ? `${missions.length}건` : '';
+    empty.hidden = missions.length > 0;
+    if (!missions.length && db) empty.textContent = '아직 올라온 임무가 없어. 왼쪽에서 목표를 쓰고 "게시판에 올리기"를 눌러.';
+    list.replaceChildren(...sorted.map(m => {
+      const li = document.createElement('li');
+      li.className = 'mission'; li.dataset.status = m.status in STATUS ? m.status : 'queued';
+      const main = document.createElement('div');
+      const goal = Object.assign(document.createElement('p'), { className: 'm-goal', textContent: m.goal });
+      const meta = document.createElement('p'); meta.className = 'm-meta';
+      const chip = (text, cls = '') => Object.assign(document.createElement('span'), { className: `chip ${cls}`, textContent: text });
+      meta.append(chip(STATUS[li.dataset.status], `st-${li.dataset.status}`), chip(m.preset), chip(m.mode));
+      if (m.minDepth) meta.append(chip(`minDepth ${m.minDepth}`));
+      const who = document.createElement('span');
+      who.textContent = `${(m.author && people[m.author]?.name) || '누군가'} · ${ago(m.createdAt)}`;
+      meta.append(who);
+      main.append(goal, meta);
+
+      const n = counts.get(m.id) ?? 0, voted = mine.has(m.id);
+      const vote = document.createElement('button');
+      vote.type = 'button'; vote.className = 'vote';
+      vote.setAttribute('aria-pressed', String(voted));
+      vote.setAttribute('aria-label', `추천 ${n}개${voted ? ', 내가 추천함' : ''}`);
+      vote.disabled = !writable || !uid;
+      const b = Object.assign(document.createElement('b'), { textContent: n });
+      const t = Object.assign(document.createElement('span'), { textContent: '추천' });
+      vote.append(b, t);
+      vote.addEventListener('click', () => toggleVote(m.id));
+      li.append(main, vote);
+
+      if (writable && (editor || (uid && m.author === uid))) {
+        const tools = document.createElement('div'); tools.className = 'm-tools';
+        const sel = document.createElement('select');
+        sel.id = `status-${m.id}`; sel.setAttribute('aria-label', '상태');
+        for (const [v, label] of Object.entries(STATUS)) sel.append(new Option(label, v, false, v === li.dataset.status));
+        sel.addEventListener('change', () => write(db.doc(`missions/${m.id}`).update({ status: sel.value }), '상태를 바꿨어.'));
+        const del = Object.assign(document.createElement('button'), { type: 'button', textContent: '삭제' });
+        let armed = null;
+        del.addEventListener('click', () => {
+          if (!armed) {
+            del.textContent = '정말 삭제';
+            armed = setTimeout(() => { armed = null; del.textContent = '삭제'; }, 3000);
+            return;
+          }
+          clearTimeout(armed);
+          write(db.doc(`missions/${m.id}`).delete(), '삭제했어.');
+        });
+        tools.append(sel, del);
+        li.append(tools);
+      }
+      return li;
+    }));
+  }
+
+  async function write(promise, done) {
+    const status = $('plan-status');
+    try {
+      await promise;
+      if (done) status.textContent = done;
+    } catch (e) {
+      if (e?.code === 'invalid_argument') readOnly('이 링크로는 게시판에 쓸 수 없어. 보석에게 편집 초대를 받으면 임무를 올리고 추천할 수 있어.');
+      else if (e?.code === 'quota_exceeded') status.textContent = '게시판 저장 공간이 찼어. 완료된 임무를 몇 개 지운 뒤 다시 올려.';
+      else status.textContent = '저장하지 못했어. 잠시 뒤 다시 해 봐.';
+      throw e;
+    }
+  }
+
+  function toggleVote(id) {
+    if (!db || !uid || !writable) return;
+    const next = new Set(mine);
+    next.has(id) ? next.delete(id) : next.add(id);
+    // One write at a time to the viewer's own vote document.
+    votingChain = votingChain.then(() => write(db.doc(`votes/${uid}`).set({ missions: [...next] }))).catch(() => {});
+  }
+
+  form.addEventListener('submit', e => {
+    e.preventDefault();
+    const s = read(), status = $('plan-status');
+    if (!db || !writable) { status.textContent = '이 화면에서는 게시판에 올릴 수 없어. 명령 복사는 그대로 쓸 수 있어.'; return; }
+    if (!s.goal || s.goal.startsWith('예시:')) { status.textContent = '목표를 직접 써 줘. 예시 문장은 올라가지 않아.'; $('goal').focus(); return; }
+    $('post').disabled = true;
+    write(db.collection('missions').add({
+      goal: s.goal.slice(0, 500), preset: s.preset, mode: s.mode, minDepth: s.minDepth,
+      status: 'queued', author: uid, createdAt: Date.now(),
+    }), '게시판에 올렸어.').catch(() => {}).finally(() => { $('post').disabled = !writable; });
+  });
+
+  (async () => {
+    const [d, u] = await Promise.all([claude.use('db'), claude.use('user')]);
+    db = d; user = u;
+    if (!db) {
+      $('empty').textContent = '게시판은 Claude에 로그인한 상태에서 보여. 작전 계획과 명령 복사는 로그인 없이도 쓸 수 있어.';
+      $('post').disabled = true;
+      return;
+    }
+    uid = user ? await user.id() : null;
+    editor = user ? await user.canEdit() : false;
+    const can = user ? await user.can('data.write') : null;
+    writable = can !== false;
+    if (!writable) readOnly('보기 전용이야. 보석에게 편집 초대를 받으면 임무를 올리고 추천할 수 있어.');
+    if (!uid && writable) setAccess('로그인 정보가 없어서 추천은 할 수 없어.');
+
+    db.collection('missions').onSnapshot(snap => {
+      missions = snap.docs.map(doc => ({ id: doc.id, ...doc.data() })).filter(m => typeof m.goal === 'string');
+      render();
+    }, () => { $('empty').textContent = '게시판을 불러오지 못했어. 새로고침해 봐.'; });
+    db.collection('votes').onSnapshot(snap => {
+      votes = new Map(snap.docs.map(doc => [doc.id, Array.isArray(doc.data().missions) ? doc.data().missions : []]));
+      mine = new Set(uid ? votes.get(uid) ?? [] : []);
+      render();
+    }, () => {});
+  })();
+})();
+</script>
