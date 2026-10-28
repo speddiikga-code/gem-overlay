@@ -8,6 +8,8 @@ Codespace. The kit's setup reads it when you point it here once.
 GitHub is the single source of truth: the private repositories `gem-setting` (the kit) and
 `gem-overlay` (this folder), plus the projects listed in `repos.txt`. Moving to a new PC or to the
 cloud, step by step in Korean: [MIGRATE.ko.md](MIGRATE.ko.md).
+Everything in one dense page (repositories, flows, invariants, decisions, measurements, every
+file): [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Apply it
 
@@ -41,7 +43,7 @@ are passed on), `gem-save` and `gem-restore-help`.
 | `skills\kakao-slice\` | a Claude Code skill for KakaoTalk chat exports (below) |
 | `skills\legion\` | the agent legion: a workflow that spreads one task over a tree of agents (below) |
 | `site\gem-setting-3d.html` | source of the interactive 3D overview page published as a Claude artifact |
-| `site\legion-board.html` | source of the legion mission board, a gift to NaNIsaac: a mission planner plus a shared board, published as a Claude artifact |
+| `site\legion-board.html` | source of the legion mission board: a mission planner plus a shared board, published as a Claude artifact |
 | `.gitattributes` | LF for shell scripts, hooks, `cloud\` and `.devcontainer\`; CRLF for `.cmd` and `.ps1` |
 | `.gitignore` | keeps Python caches, `.bak` files, and an agent's `.claude\worktrees\` and `.claude\settings.local.json` out of git (gem-save stages everything else here) |
 
