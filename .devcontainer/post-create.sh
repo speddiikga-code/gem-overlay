@@ -129,6 +129,29 @@ else
     printf '   %s is missing or not writable; skipped\n' "$workspaces"
 fi
 
+# Codespaces gives its own terminals a GITHUB_TOKEN but not SSH sessions (gh codespace ssh), where git
+# pull/push and gh would then ask for a login; this loads the same token from the codespace's env file.
+step 'GitHub token for SSH sessions'
+marker='# gem-overlay: GitHub token for SSH sessions'
+if [ -f "$HOME/.bashrc" ] && ! grep -qF "$marker" "$HOME/.bashrc"; then
+    cat >>"$HOME/.bashrc" <<'EOF'
+
+# gem-overlay: GitHub token for SSH sessions
+if [ -z "${GITHUB_TOKEN:-}" ] && [ -r /workspaces/.codespaces/shared/.env ]; then
+    GITHUB_TOKEN="$(sed -n 's/^GITHUB_TOKEN=//p' /workspaces/.codespaces/shared/.env)"
+    export GITHUB_TOKEN
+fi
+EOF
+    printf '   added to %s\n' "$HOME/.bashrc"
+fi
+# The Codespaces credential helper does not answer in SSH sessions either; gh, which reads that token,
+# is added after it, so git falls back to gh there and the codespace's own terminals are unchanged.
+gh_helper='!gh auth git-credential'
+if command -v gh >/dev/null && ! git config --global --get-all credential.https://github.com.helper 2>/dev/null | grep -qxF "$gh_helper"; then
+    git config --global --add credential.https://github.com.helper "$gh_helper"
+    printf '   git uses gh for github.com credentials\n'
+fi
+
 if [ "${#missing[@]}" -gt 0 ]; then
     printf 'Missing from this repository, so their copies were skipped:\n' >&2
     printf '   %s\n' "${!missing[@]}" | sort >&2
