@@ -1,0 +1,14 @@
+{
+  "name": "gem workstation",
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+  "features": {
+    "ghcr.io/devcontainers/features/node:1": { "version": "lts" },
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "containerEnv": {
+    "AGENT_LANGUAGE": "Korean",
+    "UV_PYTHON_PREFERENCE": "only-managed",
+    "DEV": "/workspaces"
+  },
+  "postCreateCommand": "bash .devcontainer/post-create.sh"
+}

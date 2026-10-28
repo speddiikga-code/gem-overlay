@@ -1,0 +1,6 @@
+#!/bin/sh
+# A global core.hooksPath replaces .git/hooks; hand over to the repository's own hook.
+# --git-common-dir, not --git-dir: in a linked worktree the hooks live in the main repository.
+local_hook="$(git rev-parse --git-common-dir)/hooks/$(basename "$0")"
+[ -x "$local_hook" ] && exec "$local_hook" "$@"
+exit 0

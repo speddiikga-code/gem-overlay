@@ -1,0 +1,59 @@
+#!/bin/sh
+# Run the lint that CI runs before the push, so a style error is not first found in a failed run
+# (every push to a pull request starts CI): the ruff version pinned in the repository's
+# .github/workflows/lint.yml, with the commands that file runs. Skip with SKIP_LOCAL_CI=1; add the
+# fast tests with LOCAL_CI_TESTS=1. Then upload Git LFS objects and hand over to the repository's
+# own pre-push hook.
+
+# git sends the refs being pushed on stdin, and git lfs and the repository's hook both need them.
+refs="$(cat)"
+send_refs() { [ -z "$refs" ] || printf '%s\n' "$refs"; }
+
+# Empty in a bare repository, which has no working tree to lint.
+root="$(git rev-parse --show-toplevel 2>/dev/null)"
+# --git-common-dir, not --git-dir: in a linked worktree the hooks live in the main repository.
+common="$(git rev-parse --git-common-dir)"
+local_hook="$common/hooks/pre-push"
+
+lint="$root/.github/workflows/lint.yml"
+if [ -z "$SKIP_LOCAL_CI" ] && [ -n "$root" ] && [ -f "$lint" ] && command -v uvx >/dev/null 2>&1; then
+    # Comments are dropped so a disabled step neither pins ruff nor selects a command.
+    steps="$(sed -e '/^[[:space:]]*#/d' -e 's/[[:space:]]#.*//' "$lint")"
+    ruff="$(printf '%s\n' "$steps" | grep -o 'ruff@[0-9][0-9.]*' | head -n 1)"
+    if [ -n "$ruff" ]; then
+        check='' format=''
+        printf '%s\n' "$steps" | grep -Eq 'ruff(@[0-9.]+)?[[:space:]]+check' && check=1
+        printf '%s\n' "$steps" | grep -Eq 'ruff(@[0-9.]+)?[[:space:]]+format' && format=1
+        # A pin whose commands are written some other way (a variable, an action input) keeps both.
+        [ -z "$check$format" ] && check=1 format=1
+        (
+            cd "$root" &&
+                { [ -z "$check" ] || uvx --quiet "$ruff" check </dev/null; } &&
+                { [ -z "$format" ] || uvx --quiet "$ruff" format --check </dev/null; }
+        ) || {
+            echo "pre-push: the lint that CI runs fails on the working tree (uncommitted changes count too). Fix it, or push with SKIP_LOCAL_CI=1." >&2
+            exit 1
+        }
+    fi
+fi
+if [ -z "$SKIP_LOCAL_CI" ] && [ -n "$LOCAL_CI_TESTS" ] && [ -n "$root" ] && [ -f "$root/pyproject.toml" ] && [ -d "$root/tests" ] && command -v uv >/dev/null 2>&1; then
+    (cd "$root" && uv run --quiet pytest -q -x </dev/null) || {
+        echo "pre-push: the tests fail here. Fix them, or push with SKIP_LOCAL_CI=1." >&2
+        exit 1
+    }
+fi
+
+# A global core.hooksPath stops git lfs install from adding its own pre-push hook, and without it an
+# LFS repository pushes pointers whose objects never reach the server. lfs/objects catches a pushed
+# branch that is not checked out; the attr pathspec also sees nested .gitattributes (a client such
+# as Magit runs git with --literal-pathspecs, which the hook inherits and which would make it a file
+# name). A repository hook written by git lfs install before the kit already uploads them, so it is
+# left to do that.
+if command -v git-lfs >/dev/null 2>&1 &&
+    { [ -d "$common/lfs/objects" ] || [ -n "$(git --no-literal-pathspecs ls-files ':(attr:filter=lfs)' 2>/dev/null)" ]; } &&
+    ! { [ -x "$local_hook" ] && grep -q 'git lfs pre-push' "$local_hook"; }; then
+    send_refs | git lfs pre-push "$@" || exit
+fi
+
+[ -x "$local_hook" ] || exit 0
+send_refs | "$local_hook" "$@"
