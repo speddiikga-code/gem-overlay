@@ -9,7 +9,8 @@ export const meta = {
   ],
 }
 
-// args: { goal, mode: 'plan' | 'run', preset, maxDepth, minDepth, maxAgents, branching, context, isolation: 'worktree', review }
+// args: { goal, mode: 'plan' | 'run', preset, maxDepth, minDepth, maxAgents, branching, context, isolation: 'worktree',
+//         review, effort, mergeEffort, model }
 // The tree is kept by this script, so depth costs no context: each agent sees only its own node and the titles above it.
 const PRESETS = {
   tiny: { maxAgents: 12, maxDepth: 3, branching: 3 },
@@ -33,6 +34,14 @@ const minDepth = clamp(A.minDepth ?? 0, 0, maxDepth)
 const brief = A.context ? String(A.context).trim() : ''
 const isolation = A.isolation === 'worktree' ? 'worktree' : undefined
 const review = mode === 'run' && A.review !== false
+const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max']
+const pickEffort = v => (EFFORTS.includes(v) ? v : undefined)
+// A plan only decides how to split, and a merge needs judgment but no deep search, so both default
+// below the session's effort; that is most of a legion's thinking tokens.
+const decideEffort = pickEffort(A.effort) ?? (mode === 'plan' ? 'low' : undefined)
+const mergeEffort = pickEffort(A.mergeEffort) ?? 'medium'
+const model = typeof A.model === 'string' && A.model ? A.model : undefined
+const opts = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined))
 
 const mergeCost = mode === 'run' ? 1 : 0
 let reserved = 1 + (review ? 1 : 0)
@@ -100,7 +109,9 @@ ${brief ? `Shared brief for every agent: ${brief}\n` : ''}Your node: ${node.id},
 Path from the root: ${node.path.join(' > ')}
 Your task: ${node.task}
 
-${choice}`
+${choice}
+
+Keep "rationale" to one sentence. Return the deliverable itself, with no preamble or closing remarks.`
 }
 
 function mergePrompt(node, children) {
@@ -127,12 +138,14 @@ async function runNode(node) {
   reserved += hold
   const out = { id: node.id, depth: node.depth, title: node.title, task: node.task }
 
-  const d = await agent(decidePrompt(node, canSplit, k), {
+  const d = await agent(decidePrompt(node, canSplit, k), opts({
     label: `L${node.depth} ${node.id} ${short(node.title)}`,
     phase: `Depth ${node.depth}`,
     schema: DECIDE,
     isolation,
-  })
+    effort: decideEffort,
+    model,
+  }))
   stats.agents++
   const subs = d && d.action === 'split' && canSplit ? (d.subtasks ?? []).filter(s => s && s.task).slice(0, k) : []
   if (!d || subs.length < 2) {
@@ -155,7 +168,7 @@ async function runNode(node) {
   const split = { ...out, action: 'split', rationale: d.rationale, children }
   if (mode === 'plan') return split
 
-  const m = await agent(mergePrompt(node, children), { label: `merge ${node.id} ${short(node.title)}`, phase: 'Merge', schema: MERGE })
+  const m = await agent(mergePrompt(node, children), opts({ label: `merge ${node.id} ${short(node.title)}`, phase: 'Merge', schema: MERGE, effort: mergeEffort, model }))
   stats.agents++
   if (!m) stats.failed++
   return {
@@ -191,7 +204,7 @@ ${root.result}
 return {
   goal,
   mode,
-  limits: { maxAgents, maxDepth, minDepth, branching },
+  limits: opts({ maxAgents, maxDepth, minDepth, branching, effort: decideEffort, mergeEffort, model }),
   stats,
   outline: outline(root).join('\n'),
   final: mode === 'run' ? root.result : null,

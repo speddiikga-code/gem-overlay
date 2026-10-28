@@ -60,6 +60,15 @@ If the user has no goal yet, preview a goal they name, or ask for one; do not in
 | `context` | none | a brief every agent gets: repository path, constraints, output format |
 | `isolation` | none | `worktree` gives every agent its own git worktree, for tasks that edit files in parallel |
 | `review` | `true` | `false` skips the final critic |
+| `effort` | `low` in plan mode, the session's in run mode | reasoning effort for the agents that solve or split: `low` to `max` |
+| `mergeEffort` | `medium` | reasoning effort for the merges |
+| `model` | the session's | a model for every solve, split and merge agent, for example `sonnet` or `haiku` for wide, simple work |
+
+To save usage, count agents, not effort. Measured on this setup (2026-10-28): every agent costs
+about 54k tokens however small its task, because most of that is its fixed starting context. Lower
+effort mainly saves time (a three-level run went from 144 s to 63 s at `medium`; a plan preview from
+74 s to 20 s at `low`) and makes agents split less. So: preview with `plan`, cap `maxAgents`, prefer
+fewer, larger leaves, and use a smaller `model` when the leaves are simple.
 
 ## Facts to tell the user when they matter
 
